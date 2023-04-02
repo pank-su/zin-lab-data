@@ -1,4 +1,3 @@
-import datetime
 from dataclasses import dataclass
 
 
@@ -13,7 +12,11 @@ class Collection:
     point: str
     vouch_inst_id: int
     vouch_id: str
-    date_of_collect: datetime.date
+    day: int
+    month: int
+    year: int
     rna: bool
     sex_id: int
     age: int
+    comment: str
+    geo_comment: str

@@ -1,12 +1,14 @@
 from dataclass_csv import DataclassReader, DataclassWriter
 from typing import List, Dict, Tuple
 
+from dclasses.Age import Age
 from dclasses.BadData import BadData
 from dclasses.Collection import Collection
 from dclasses.Collector import Collector
 from dclasses.CollectorToCollection import CollectorToCollection
 from dclasses.Country import Country
 from dclasses.Family import Family
+from dclasses.Gender import Gender
 from dclasses.Genus import Genus
 from dclasses.Order import Order
 from dclasses.Region import Region
@@ -32,11 +34,17 @@ genuses: Dict[Tuple[int, str], Genus] = {}
 # виды
 kindes: Dict[Tuple[int, str], Genus] = {}
 # страны
-countries: Dict[str, Country] = {}
+countries: Dict[str, Country] = {"Россия": Country(1, "Россия")}
 # регионы
 regions: Dict[Tuple[int, str], Region] = {}
 # субрегионы
 subregions: Dict[Tuple[int, str], SubRegion] = {}
+# возраст животного
+ages: Dict[int, Age]
+# пол
+genders = {
+    "0": Gender(1, "")
+}
 
 
 def get_collection(filename: str) -> List[BadData]:
@@ -74,9 +82,11 @@ def get_collection(filename: str) -> List[BadData]:
 if __name__ == '__main__':
     bad_data_collection = get_collection("input_data/collection.csv")
     for el in bad_data_collection:
-        year: int
-        month: int
-        day: int
+        year: int = 0
+        month: int = 0
+        day: int = 0
+        country_id = 0
+        vauch_inst_id: int = 0
         # получение отряда
         if el.order.lower() not in orders.keys():
             orders[el.order.lower()] = Order(len(orders) + 1, el.order.lower())
@@ -100,7 +110,7 @@ if __name__ == '__main__':
         if el.vauch_inst != '':
             if el.vauch_inst not in institutes.keys():
                 institutes[el.vauch_inst] = VoucherInstitute(len(institutes) + 1, el.vauch_inst)
-            vauch_inst_id: int = institutes[el.vauch_inst].id
+            vauch_inst_id = institutes[el.vauch_inst].id
         # получение коллекторов
         if el.collectors != '':
             cols = re.findall(r"[А-ЯA-Z]\w+", el.collectors)
@@ -109,8 +119,9 @@ if __name__ == '__main__':
                     collectors[collector] = Collector(len(collectors) + 1, collector, '', '')
 
         # корректировка значения точки
+        point = ""
         if el.latitude != 0 and el.longitude != 0:
-            pass
+            point = f"Point({el.latitude}, {el.longitude})"
         if el.date_of_collect != '':
             datesStr = re.findall(r"\d{1,2}[./]\d{1,2}[./]\d{2,4}|\d{1,2}.\d{4}|\d{4}|28-31\. 07\.2019",
                                   el.date_of_collect)
@@ -142,9 +153,29 @@ if __name__ == '__main__':
                     # Добавить комментарий в поле
                 else:
                     pass  # to debug
-        # if el.country == "":
+        # Получение страны
+        if el.country == "":
+            country_id = countries["Россия"].id
+        else:
+            if el.country not in countries.keys():
+                countries[el.country] = Country(len(countries) + 1, el.country)
+            country_id = countries[el.country].id
+        # получение региона
+        if (country_id, el.region) not in regions.keys():
+            regions[(country_id, el.region)] = Region(len(regions) + 1, order_id, el.region)
+        region_id = regions[(country_id, el.region)].id
 
+        # получение субрегиона
+        if (region_id, el.subregion) not in subregions.keys():
+            subregions[(region_id, el.subregion)] = SubRegion(len(subregions) + 1, region_id, el.subregion)
+        subregion_id = subregions[(region_id, el.subregion)].id
 
+        collection.append(
+            Collection(el.id_taxon, el.catalog_number, el.collect_id, kind_id, subregion_id, el.gen_bank, point,
+                       vauch_inst_id, el.vauch_code, day, month, year, el.rna != "", 0, 0, el.comments,
+                       ", ".join([el.place_1, el.place_2, el.place_3])))
+
+    print(subregions)
     print(collectors)
 
     print(institutes)
