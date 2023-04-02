@@ -6,8 +6,9 @@ from dataclass_csv import accept_whitespaces
 @accept_whitespaces
 @dataclass
 class BadData:
+    """Класс, который описывает данные из исходной таблицы"""
     id_taxon: int
-    catalog_number: str
+    catalog_number: str = '' # для новых данных нужно значение по умолчанию
     family: str = ''
     order: str = ''
     vauch_inst: str = ''
@@ -29,5 +30,5 @@ class BadData:
     place_2: str = ''
     place_3: str = ''
     gen_bank: str = ''
-    latitude: str = ''
-    longitude: str = ''
+    latitude: float = 0
+    longitude: float = 0

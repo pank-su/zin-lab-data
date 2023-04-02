@@ -9,6 +9,7 @@ from dclasses.Family import Family
 from dclasses.Genus import Genus
 from dclasses.Order import Order
 from dclasses.VoucherInstitute import VoucherInstitute
+import re
 
 # вауч. институты
 institutes: Dict[str, VoucherInstitute] = {}
@@ -29,6 +30,7 @@ kindes: Dict[Tuple[int, str], Genus] = {}
 
 
 def get_collection(filename: str) -> List[BadData]:
+    """Получение коллекции, с помощью списка из csv"""
     with open(filename, "r", encoding="utf-8") as f:
         dt = DataclassReader(f, BadData)
         dt.map('ID taxon').to('id_taxon')
@@ -61,9 +63,7 @@ def get_collection(filename: str) -> List[BadData]:
 
 if __name__ == '__main__':
     bad_data_collection = get_collection("input_data/collection.csv")
-    un_data = set()
     for el in bad_data_collection:
-        un_data.add(el.collectors)
         # получение отряда
         if el.order.lower() not in orders.keys():
             orders[el.order.lower()] = Order(len(orders) + 1, el.order.lower())
@@ -90,10 +90,14 @@ if __name__ == '__main__':
             vauch_inst_id: int = institutes[el.vauch_inst].id
         # получение коллекторов
         if el.collectors != '':
-            for collector in el.collectors.split(','):
-                normal_col = collector.lstrip().split(' ')[0]
-                if normal_col not in collectors.keys():
-                    collectors[normal_col] = Collector(len(collectors) + 1, normal_col, '', '')
+            cols = re.findall(r"[А-ЯA-Z]\w+", el.collectors)
+            for collector in cols:
+                if collector not in collectors.keys():
+                    collectors[collector] = Collector(len(collectors) + 1, collector, '', '')
+        # получение точки
+        if el.latitude == 0 and el.longitude == 0:
+            pass
+
 
     print(collectors)
 
@@ -104,7 +108,3 @@ if __name__ == '__main__':
     print(families)
 
     print(kindes)
-
-    with open('./output/lida.csv', "w", encoding="utf-8") as f:
-        for el in un_data:
-            f.write("\"" + el + '\"\n')
