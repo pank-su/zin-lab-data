@@ -5,10 +5,14 @@ from dclasses.BadData import BadData
 from dclasses.Collection import Collection
 from dclasses.Collector import Collector
 from dclasses.CollectorToCollection import CollectorToCollection
+from dclasses.Country import Country
 from dclasses.Family import Family
 from dclasses.Genus import Genus
 from dclasses.Order import Order
+from dclasses.Region import Region
+from dclasses.SubRegion import SubRegion
 from dclasses.VoucherInstitute import VoucherInstitute
+from datetime import date, datetime
 import re
 
 # вауч. институты
@@ -27,6 +31,12 @@ families: Dict[Tuple[int, str], Family] = {}
 genuses: Dict[Tuple[int, str], Genus] = {}
 # виды
 kindes: Dict[Tuple[int, str], Genus] = {}
+# страны
+countries: Dict[str, Country] = {}
+# регионы
+regions: Dict[Tuple[int, str], Region] = {}
+# субрегионы
+subregions: Dict[Tuple[int, str], SubRegion] = {}
 
 
 def get_collection(filename: str) -> List[BadData]:
@@ -64,6 +74,9 @@ def get_collection(filename: str) -> List[BadData]:
 if __name__ == '__main__':
     bad_data_collection = get_collection("input_data/collection.csv")
     for el in bad_data_collection:
+        year: int
+        month: int
+        day: int
         # получение отряда
         if el.order.lower() not in orders.keys():
             orders[el.order.lower()] = Order(len(orders) + 1, el.order.lower())
@@ -94,9 +107,42 @@ if __name__ == '__main__':
             for collector in cols:
                 if collector not in collectors.keys():
                     collectors[collector] = Collector(len(collectors) + 1, collector, '', '')
-        # получение точки
-        if el.latitude == 0 and el.longitude == 0:
+
+        # корректировка значения точки
+        if el.latitude != 0 and el.longitude != 0:
             pass
+        if el.date_of_collect != '':
+            datesStr = re.findall(r"\d{1,2}[./]\d{1,2}[./]\d{2,4}|\d{1,2}.\d{4}|\d{4}|28-31\. 07\.2019",
+                                  el.date_of_collect)
+            # if для debug патерна
+            if len(datesStr) == 0:
+                pass
+            else:
+                dateStr = datesStr[0]
+                if re.fullmatch(r"\d{1,2}[./]\d{1,2}[./]\d{2,4}", dateStr):
+                    delim = re.findall(r"[./]", dateStr)[0]
+                    date_: date
+
+                    if delim == "/":
+                        date_ = datetime.strptime(dateStr, f"%m{delim}%d{delim}%Y").date()
+                    else:
+                        try:
+                            date_ = datetime.strptime(dateStr, f"%d{delim}%m{delim}%Y").date()
+                        except ValueError:
+                            date_ = datetime.strptime(dateStr, f"%d{delim}%m{delim}%y").date()
+                    # print(el)
+                    day, month, year = (date_.day, date_.month, date_.year)
+                elif len(dateStr) == 4:
+                    year = int(dateStr)
+                elif re.fullmatch(r"\d{1,2}.\d{4}", dateStr):
+                    month, year = map(int, dateStr.split("."))
+                elif re.fullmatch(r"28-31\. 07\.2019", dateStr):
+                    month = 7
+                    year = 2019
+                    # Добавить комментарий в поле
+                else:
+                    pass  # to debug
+        # if el.country == "":
 
 
     print(collectors)
