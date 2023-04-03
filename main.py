@@ -1,5 +1,8 @@
-from dataclass_csv import DataclassReader, DataclassWriter
+import re
+from datetime import date, datetime
 from typing import List, Dict, Tuple
+
+from dataclass_csv import DataclassReader
 
 from dclasses.Age import Age
 from dclasses.BadData import BadData
@@ -14,8 +17,6 @@ from dclasses.Order import Order
 from dclasses.Region import Region
 from dclasses.SubRegion import SubRegion
 from dclasses.VoucherInstitute import VoucherInstitute
-from datetime import date, datetime
-import re
 
 # вауч. институты
 institutes: Dict[str, VoucherInstitute] = {}
@@ -39,11 +40,35 @@ countries: Dict[str, Country] = {"Россия": Country(1, "Россия")}
 regions: Dict[Tuple[int, str], Region] = {}
 # субрегионы
 subregions: Dict[Tuple[int, str], SubRegion] = {}
-# возраст животного
-ages: Dict[int, Age]
+
+# Эти данные неизменны, поэтому захардкодим
 # пол
 genders = {
-    "0": Gender(1, "")
+    "0": Gender(1, "Женский"),
+    "1": Gender(2, "Мужской"),
+    "f": Gender(1, "Женский"),
+    "m": Gender(2, "Мужской"),
+    "m?": Gender(3, "возможно мужской"),
+    "m??": Gender(3, "возможно мужской"),
+    "": Gender(0, "Unknown"),
+    "?": Gender(0, "Unknown"),
+    "_": Gender(0, "Unknown"),
+    "--": Gender(0, "Unknown")
+}
+
+# возраста
+ages = {
+    "1": Age(1, "juvenile"),
+    "2": Age(2, "subadult"),
+    "3": Age(3, "adult"),
+    "juv": Age(1, "juvenile"),
+    "sad": Age(2, "subadult"),
+    "subad": Age(2, "subadult"),
+    "ad": Age(3, "adult"),
+    "a": Age(3, "adult"),
+    "subad/ad": Age(4, "subadult or adult"),
+    "": Age(0, "Unknown"),
+    "_": Gender(0, "Unknown")
 }
 
 
@@ -170,12 +195,18 @@ if __name__ == '__main__':
             subregions[(region_id, el.subregion)] = SubRegion(len(subregions) + 1, region_id, el.subregion)
         subregion_id = subregions[(region_id, el.subregion)].id
 
+        gender_id = genders[el.gender.lower().strip()].id
+        age_id = ages[el.age.lower()].id
+
         collection.append(
             Collection(el.id_taxon, el.catalog_number, el.collect_id, kind_id, subregion_id, el.gen_bank, point,
-                       vauch_inst_id, el.vauch_code, day, month, year, el.rna != "", 0, 0, el.comments,
+                       vauch_inst_id, el.vauch_code, day, month, year, el.rna != "", gender_id, age_id, el.comments,
                        ", ".join([el.place_1, el.place_2, el.place_3])))
 
+    print(collection)
+
     print(subregions)
+
     print(collectors)
 
     print(institutes)
