@@ -1,8 +1,9 @@
 import re
 from datetime import date, datetime
+from os import chdir
 from typing import List, Dict, Tuple
 
-from dataclass_csv import DataclassReader
+from dataclass_csv import DataclassReader, DataclassWriter
 
 from dclasses.Age import Age
 from dclasses.BadData import BadData
@@ -13,6 +14,7 @@ from dclasses.Country import Country
 from dclasses.Family import Family
 from dclasses.Gender import Gender
 from dclasses.Genus import Genus
+from dclasses.Kind import Kind
 from dclasses.Order import Order
 from dclasses.Region import Region
 from dclasses.SubRegion import SubRegion
@@ -33,7 +35,7 @@ families: Dict[Tuple[int, str], Family] = {}
 # рода
 genuses: Dict[Tuple[int, str], Genus] = {}
 # виды
-kindes: Dict[Tuple[int, str], Genus] = {}
+kinds: Dict[Tuple[int, str], Kind] = {}
 # страны
 countries: Dict[str, Country] = {"Россия": Country(1, "Россия")}
 # регионы
@@ -65,7 +67,7 @@ ages = {
     "sad": Age(2, "subadult"),
     "subad": Age(2, "subadult"),
     "ad": Age(3, "adult"),
-    "a": Age(3, "adult"),
+    "a": Age(0, "Unknown"),
     "subad/ad": Age(4, "subadult or adult"),
     "": Age(0, "Unknown"),
     "_": Gender(0, "Unknown")
@@ -113,23 +115,25 @@ if __name__ == '__main__':
         country_id = 0
         vauch_inst_id: int = 0
         # получение отряда
-        if el.order.lower() not in orders.keys():
-            orders[el.order.lower()] = Order(len(orders) + 1, el.order.lower())
-        order_id = orders[el.order.lower()].id
+        if el.order.lower().strip() not in orders.keys():
+            orders[el.order.lower().strip()] = Order(len(orders) + 1, el.order.lower().strip())
+        order_id = orders[el.order.lower().strip()].id
         # получение семейства
-        if (order_id, el.family.lower()) not in families.keys():
-            families[(order_id, el.family.lower())] = Family(len(families) + 1, order_id, el.family.lower())
-        family_id = families[(order_id, el.family.lower())].id
+        if (order_id, el.family.lower().strip()) not in families.keys():
+            families[(order_id, el.family.lower().strip())] = Family(len(families) + 1, order_id,
+                                                                     el.family.lower().strip())
+        family_id = families[(order_id, el.family.lower().strip())].id
 
         # получение рода
-        if (family_id, el.genus.lower()) not in genuses.keys():
-            genuses[(family_id, el.genus.lower())] = Genus(len(genuses) + 1, family_id, el.genus.lower())
-        genus_id = genuses[(family_id, el.genus.lower())].id
+        if (family_id, el.genus.lower().strip()) not in genuses.keys():
+            genuses[(family_id, el.genus.lower().strip())] = Genus(len(genuses) + 1, family_id,
+                                                                   el.genus.lower().strip())
+        genus_id = genuses[(family_id, el.genus.lower().strip())].id
 
         # получение видов
-        if (genus_id, el.kind.lower()) not in kindes.keys():
-            kindes[(genus_id, el.kind.lower())] = Genus(len(kindes) + 1, genus_id, el.kind.lower())
-        kind_id = kindes[(genus_id, el.kind.lower())].id
+        if (genus_id, el.kind.lower().strip()) not in kinds.keys():
+            kinds[(genus_id, el.kind.lower().strip())] = Kind(len(kinds) + 1, genus_id, el.kind.lower().strip())
+        kind_id = kinds[(genus_id, el.kind.lower().strip())].id
 
         # получение института
         if el.vauch_inst != '':
@@ -142,6 +146,7 @@ if __name__ == '__main__':
             for collector in cols:
                 if collector not in collectors.keys():
                     collectors[collector] = Collector(len(collectors) + 1, collector, '', '')
+                collectors_to_collection.append(CollectorToCollection(collectors[collector].id, el.id_taxon))
 
         # корректировка значения точки
         point = ""
@@ -182,18 +187,19 @@ if __name__ == '__main__':
         if el.country == "":
             country_id = countries["Россия"].id
         else:
-            if el.country not in countries.keys():
-                countries[el.country] = Country(len(countries) + 1, el.country)
-            country_id = countries[el.country].id
+            if el.country.strip() not in countries.keys():
+                countries[el.country.strip()] = Country(len(countries) + 1, el.country.strip())
+            country_id = countries[el.country.strip()].id
         # получение региона
-        if (country_id, el.region) not in regions.keys():
-            regions[(country_id, el.region)] = Region(len(regions) + 1, order_id, el.region)
-        region_id = regions[(country_id, el.region)].id
+        if (country_id, el.region.strip()) not in regions.keys():
+            regions[(country_id, el.region.strip())] = Region(len(regions) + 1, order_id, el.region.strip())
+        region_id = regions[(country_id, el.region.strip())].id
 
         # получение субрегиона
-        if (region_id, el.subregion) not in subregions.keys():
-            subregions[(region_id, el.subregion)] = SubRegion(len(subregions) + 1, region_id, el.subregion)
-        subregion_id = subregions[(region_id, el.subregion)].id
+        if (region_id, el.subregion.strip()) not in subregions.keys():
+            subregions[(region_id, el.subregion.strip())] = SubRegion(len(subregions) + 1, region_id,
+                                                                      el.subregion.strip())
+        subregion_id = subregions[(region_id, el.subregion.strip())].id
 
         gender_id = genders[el.gender.lower().strip()].id
         age_id = ages[el.age.lower()].id
@@ -203,7 +209,41 @@ if __name__ == '__main__':
                        vauch_inst_id, el.vauch_code, day, month, year, el.rna != "", gender_id, age_id, el.comments,
                        ", ".join([el.place_1, el.place_2, el.place_3])))
 
-    print(collection)
+    chdir("./output")
+
+    with open("collectors.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, list(collectors.values()), Collector).write()
+
+    with open("countries.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, list(countries.values()), Country).write()
+
+    with open("regions.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, list(regions.values()), Region).write()
+
+    with open("subregions.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, list(subregions.values()), SubRegion).write()
+
+    with open("orders.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, list(orders.values()), Order).write()
+
+    with open("families.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, list(families.values()), Family).write()
+
+    with open("genuses.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, list(genuses.values()), Genus).write()
+
+    with open("kinds.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, list(kinds.values()), Kind).write()
+
+    with open("collection.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, collection, Collection).write()
+
+    with open("CollectorToCollection.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, collectors_to_collection, CollectorToCollection).write()
+
+    with open("institutes.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, list(institutes.values()), VoucherInstitute).write()
+
 
     print(subregions)
 
@@ -215,4 +255,4 @@ if __name__ == '__main__':
 
     print(families)
 
-    print(kindes)
+    print(kinds)
