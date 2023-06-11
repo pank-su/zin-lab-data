@@ -52,10 +52,10 @@ genders = {
     "m": Gender(2, "Мужской"),
     "m?": Gender(3, "возможно мужской"),
     "m??": Gender(3, "возможно мужской"),
-    "": Gender(0, "Unknown"),
-    "?": Gender(0, "Unknown"),
-    "_": Gender(0, "Unknown"),
-    "--": Gender(0, "Unknown")
+    "": Gender(0, "Неизвестный"),
+    "?": Gender(0, "Неизвестный"),
+    "_": Gender(0, "Неизвестный"),
+    "--": Gender(0, "Неизвестный")
 }
 
 # возраста
@@ -142,10 +142,16 @@ if __name__ == '__main__':
             vauch_inst_id = institutes[el.vauch_inst].id
         # получение коллекторов
         if el.collectors != '':
-            cols = re.findall(r"[А-ЯA-Z]\w+", el.collectors)
+            cols = re.findall(r"[А-ЯA-Z][а-яА-Яa-z\-]+\s[А-ЯA-Z][а-яА-Яa-z\-]+|[А-ЯA-Z][а-яА-Яa-z\-]+", el.collectors)
             for collector in cols:
+
                 if collector not in collectors.keys():
-                    collectors[collector] = Collector(len(collectors) + 1, collector, '', '')
+                    if len(collector.split()) > 1:
+                        collectors[collector] = Collector(len(collectors) + 1, collector.split()[0],
+                                                          collector.split()[1], "")
+                    else:
+                        collectors[collector] = Collector(len(collectors) + 1, collector, '', '')
+
                 collectors_to_collection.append(CollectorToCollection(collectors[collector].id, el.id_taxon))
 
         # корректировка значения точки
@@ -243,16 +249,3 @@ if __name__ == '__main__':
 
     with open("institutes.csv", "w", encoding="utf-8", newline='') as f:
         DataclassWriter(f, list(institutes.values()), VoucherInstitute).write()
-
-
-    print(subregions)
-
-    print(collectors)
-
-    print(institutes)
-
-    print(orders)
-
-    print(families)
-
-    print(kinds)
