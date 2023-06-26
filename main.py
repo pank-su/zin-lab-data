@@ -18,6 +18,7 @@ from dclasses.Kind import Kind
 from dclasses.Order import Order
 from dclasses.Region import Region
 from dclasses.SubRegion import SubRegion
+from dclasses.Tissue import Tissue
 from dclasses.VoucherInstitute import VoucherInstitute
 
 # вауч. институты
@@ -42,6 +43,8 @@ countries: Dict[str, Country] = {"Россия": Country(1, "Россия")}
 regions: Dict[Tuple[int, str], Region] = {}
 # субрегионы
 subregions: Dict[Tuple[int, str], SubRegion] = {}
+
+tissues: Dict[str, Tissue] = {}
 
 # Эти данные неизменны, поэтому захардкодим
 # пол
@@ -210,8 +213,18 @@ if __name__ == '__main__':
         gender_id = genders[el.gender.lower().strip()].id
         age_id = ages[el.age.lower()].id
 
+        new_catalog_number = f"ZIN-TER-M-{el.id_taxon}"
+
+        if el.vauch_code == "б/н":
+            el.vauch_code = None
+
+        # ТКАНЬ
+        if el.tissue.strip() not in tissues.keys():
+            tissues[el.tissue.strip()] = Tissue(len(tissues), el.tissue.strip())
+
+
         collection.append(
-            Collection(el.id_taxon, el.catalog_number, el.collect_id, kind_id, subregion_id, el.gen_bank, point,
+            Collection(el.id_taxon, new_catalog_number, el.collect_id, kind_id, subregion_id, el.gen_bank, point,
                        vauch_inst_id, el.vauch_code, day, month, year, el.rna != "", gender_id, age_id, el.comments,
                        ", ".join([el.place_1, el.place_2, el.place_3])))
 
@@ -249,3 +262,6 @@ if __name__ == '__main__':
 
     with open("institutes.csv", "w", encoding="utf-8", newline='') as f:
         DataclassWriter(f, list(institutes.values()), VoucherInstitute).write()
+
+    with open("tissues.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, list(tissues.values()), Tissue).write()
