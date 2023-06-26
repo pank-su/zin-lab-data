@@ -198,7 +198,7 @@ if __name__ == '__main__':
             country_id = countries[el.country.strip()].id
         # получение региона
         if (country_id, el.region.strip()) not in regions.keys():
-            regions[(country_id, el.region.strip())] = Region(len(regions) + 1, order_id, el.region.strip())
+            regions[(country_id, el.region.strip())] = Region(len(regions) + 1, country_id, el.region.strip())
         region_id = regions[(country_id, el.region.strip())].id
 
         # получение субрегиона
