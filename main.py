@@ -73,7 +73,7 @@ ages = {
     "a": Age(0, "Unknown"),
     "subad/ad": Age(4, "subadult or adult"),
     "": Age(0, "Unknown"),
-    "_": Gender(0, "Unknown")
+    "_": Age(0, "Unknown")
 }
 
 
@@ -160,7 +160,7 @@ if __name__ == '__main__':
         # корректировка значения точки
         point = ""
         if el.latitude != 0 and el.longitude != 0:
-            point = f"Point({el.latitude}, {el.longitude})"
+            point = f"Point({el.latitude} {el.longitude})"
         if el.date_of_collect != '':
             datesStr = re.findall(r"\d{1,2}[./]\d{1,2}[./]\d{2,4}|\d{1,2}.\d{4}|\d{4}|28-31\. 07\.2019",
                                   el.date_of_collect)
@@ -265,3 +265,9 @@ if __name__ == '__main__':
 
     with open("tissues.csv", "w", encoding="utf-8", newline='') as f:
         DataclassWriter(f, list(tissues.values()), Tissue).write()
+
+    with open("ages.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, list(set(ages.values())), Age).write()
+
+    with open("sex.csv", "w", encoding="utf-8", newline='') as f:
+        DataclassWriter(f, list(set(genders.values())), Gender).write()
