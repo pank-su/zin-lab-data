@@ -160,7 +160,7 @@ if __name__ == '__main__':
         # корректировка значения точки
         point = ""
         if el.latitude != 0 and el.longitude != 0:
-            point = f"Point({el.latitude} {el.longitude})"
+            point = f"Point({el.longitude} {el.latitude})"
         if el.date_of_collect != '':
             datesStr = re.findall(r"\d{1,2}[./]\d{1,2}[./]\d{2,4}|\d{1,2}.\d{4}|\d{4}|28-31\. 07\.2019",
                                   el.date_of_collect)
