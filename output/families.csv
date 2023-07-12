@@ -1,10 +1,10 @@
 id,order_id,name
-1,1,cricetidae
-2,1,gerbilinae
-3,1,gliridae
-4,1,muridae
-5,1,sciuridae
-6,2,ochotonidae
+1,1,Сricetidae
+2,1,Gerbilinae
+3,1,Gliridae
+4,1,Muroidae
+5,1,Sciuridae
+6,2,Ochotonidae
 7,3,soricidae
 8,1,sminthidae
 9,1,rhizomiidae
@@ -13,7 +13,7 @@ id,order_id,name
 12,1,allactactagidae
 13,1,dipodidae
 14,5,microchiroptera
-15,2,leporidae
+15,2,Leporidae
 16,6,mustelidae
 17,6,felidae
 18,1,gerbillidae
