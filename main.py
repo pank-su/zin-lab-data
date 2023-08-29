@@ -76,6 +76,9 @@ ages = {
     "_": Age(0, "Unknown")
 }
 
+# плохие значения
+invalid_values: List[str] = ['неизвестен', '?', '']
+
 
 def get_collection(filename: str) -> List[BadData]:
     """Получение коллекции, с помощью списка из csv"""
@@ -117,26 +120,42 @@ if __name__ == '__main__':
         day: int = 0
         country_id = 0
         vauch_inst_id: int = 0
+
         # получение отряда
-        if el.order.lower().strip() not in orders.keys():
-            orders[el.order.lower().strip()] = Order(len(orders) + 1, el.order.lower().strip())
-        order_id = orders[el.order.lower().strip()].id
+        if el.order in invalid_values:
+            order = ""
+        else:
+            order = el.order.strip().title()
+        if order not in orders.keys():
+            orders[order] = Order(len(orders) + 1, order)
+        order_id = orders[order].id
+
         # получение семейства
-        if (order_id, el.family.lower().strip()) not in families.keys():
-            families[(order_id, el.family.lower().strip())] = Family(len(families) + 1, order_id,
-                                                                     el.family.lower().strip())
-        family_id = families[(order_id, el.family.lower().strip())].id
+        if el.family in invalid_values:
+            family = ""
+        else:
+            family = el.family.strip().title()
+        if (order_id, family) not in families.keys():
+            families[(order_id, family)] = Family(len(families) + 1, order_id, family)
+        family_id = families[(order_id, family)].id
 
         # получение рода
-        if (family_id, el.genus.lower().strip()) not in genuses.keys():
-            genuses[(family_id, el.genus.lower().strip())] = Genus(len(genuses) + 1, family_id,
-                                                                   el.genus.lower().strip())
-        genus_id = genuses[(family_id, el.genus.lower().strip())].id
+        if el.genus in invalid_values:
+            genus = ""
+        else:
+            genus = el.genus.strip().title()
+        if (family_id, genus) not in genuses.keys():
+            genuses[(family_id, genus)] = Genus(len(genuses) + 1, family_id, genus)
+        genus_id = genuses[(family_id, genus)].id
 
         # получение видов
-        if (genus_id, el.kind.lower().strip()) not in kinds.keys():
-            kinds[(genus_id, el.kind.lower().strip())] = Kind(len(kinds) + 1, genus_id, el.kind.lower().strip())
-        kind_id = kinds[(genus_id, el.kind.lower().strip())].id
+        if el.kind in invalid_values:
+            kind = ""
+        else:
+            kind = el.kind.strip().title()
+        if (genus_id, kind) not in kinds.keys():
+            kinds[(genus_id, kind)] = Kind(len(kinds) + 1, genus_id, kind)
+        kind_id = kinds[(genus_id, kind)].id
 
         # получение института
         if el.vauch_inst != '':
@@ -216,12 +235,11 @@ if __name__ == '__main__':
         new_catalog_number = f"ZIN-TER-M-{el.id_taxon}"
 
         if el.vauch_code == "б/н":
-            el.vauch_code = None
+            el.vauch_code = ''
 
         # ТКАНЬ
         if el.tissue.strip() not in tissues.keys():
             tissues[el.tissue.strip()] = Tissue(len(tissues), el.tissue.strip())
-
 
         collection.append(
             Collection(el.id_taxon, new_catalog_number, el.collect_id, kind_id, subregion_id, el.gen_bank, point,
