@@ -58,7 +58,9 @@ genders = {
     "": Gender(0, "Неизвестный"),
     "?": Gender(0, "Неизвестный"),
     "_": Gender(0, "Неизвестный"),
-    "--": Gender(0, "Неизвестный")
+    "--": Gender(0, "Неизвестный"),
+    "female": Gender(1, "Женский"),
+    "male": Gender(2, "Мужской")
 }
 
 # возраста
@@ -110,7 +112,7 @@ def get_collection(filename: str) -> List[BadData]:
 
 
 if __name__ == '__main__':
-    bad_data_collection = get_collection("input_data/collection.csv")
+    bad_data_collection = get_collection("input_data/col2.csv.csv")
     for el in bad_data_collection:
         year: int = 0
         month: int = 0

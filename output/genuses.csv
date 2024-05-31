@@ -92,8 +92,6 @@ id,family_id,name
 91,29,?
 92,10,rattus
 93,3,graphiurus
-94,10,alexandromys
-95,10,agricola
-96,10,clethrionomys
-97,10,lasiopodomys
-98,30,vulpes
+94,30,vulpes
+95,10,spermophilus
+96,10,lemmus
