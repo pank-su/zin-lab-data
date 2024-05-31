@@ -115,7 +115,7 @@ def get_collection(filename: str) -> List[BadData]:
 
 
 if __name__ == '__main__':
-    bad_data_collection = get_collection("input_data/col2.csv.csv")
+    bad_data_collection = get_collection("input_data/collection.csv")
     for el in bad_data_collection:
         year: int = 0
         month: int = 0
