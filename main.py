@@ -49,18 +49,18 @@ tissues: Dict[str, Tissue] = {}
 # Эти данные неизменны, поэтому захардкодим
 # пол
 genders = {
-    "0": Gender(1, "Женский"),
-    "1": Gender(2, "Мужской"),
-    "f": Gender(1, "Женский"),
-    "m": Gender(2, "Мужской"),
-    "m?": Gender(3, "возможно мужской"),
-    "m??": Gender(3, "возможно мужской"),
-    "": Gender(0, "Неизвестный"),
-    "?": Gender(0, "Неизвестный"),
-    "_": Gender(0, "Неизвестный"),
-    "--": Gender(0, "Неизвестный"),
-    "female": Gender(1, "Женский"),
-    "male": Gender(2, "Мужской")
+    "0": Gender(1, "female"),
+    "1": Gender(2, "male"),
+    "f": Gender(1, "female"),
+    "m": Gender(2, "male"),
+    "m?": Gender(3, "male?"),
+    "m??": Gender(3, "male?"),
+    "": Gender(0, "unknown"),
+    "?": Gender(0, "unknown"),
+    "_": Gender(0, "unknown"),
+    "--": Gender(0, "unknown"),
+    "female": Gender(1, "female"),
+    "male": Gender(2, "male")
 }
 
 # возраста
