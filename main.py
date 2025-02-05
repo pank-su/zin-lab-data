@@ -3,6 +3,7 @@ import re
 from datetime import date, datetime
 from os import chdir
 from typing import List, Dict, Tuple
+from time import sleep
 
 from geopy.geocoders import Nominatim
 
@@ -45,7 +46,7 @@ genuses: Dict[Tuple[int, str], Genus] = {}
 # виды
 kinds: Dict[Tuple[int, str], Kind] = {}
 # страны
-countries: Dict[str, Country] = {"Россия": Country(1, "Россия")}
+countries: Dict[str, Country] = {}
 # регионы
 regions: Dict[Tuple[int, str], Region] = {}
 # субрегионы
@@ -139,11 +140,11 @@ def get_or_create(container: map, key, create_func):
 @dataclass
 class GeoData:
     country: str
-    state: str
+    region: str
 
 
 def get_geo_by_position(lat: float, lon: float) -> GeoData:
-    data = geolocator.reverse(f"${lat}, ${lon}", language="ru")
+    data = geolocator.reverse(f"{lat}, {lon}", language="ru")
     return GeoData(data.raw["address"]["country"], data.raw["address"]["state"])
 
 
@@ -227,32 +228,19 @@ if __name__ == "__main__":
 
         if row.latitude != 0 and row.longitude != 0:
             point = f"Point({row.longitude} {row.latitude})"
-        
-        
-        # Получение страны
-        if row.country == "":
-            country_id = countries["Россия"].id
-        else:
-            if row.country.strip() not in countries.keys():
-                countries[row.country.strip()] = Country(
-                    len(countries) + 1, row.country.strip()
+            sleep(2)
+            print(row.id_taxon)
+            data = get_geo_by_position(row.latitude, row.longitude)
+            
+            if data.country not in countries.keys():
+                countries[data.country] = Country(len(countries) + 1, data.country)
+            country_id = countries[data.country].id
+            if (country_id, data.region) not in regions.keys():
+                regions[(country_id, data.region)] = Region(
+                    len(regions) + 1, country_id, data.region
                 )
-            country_id = countries[row.country.strip()].id
-        # получение региона
-        if (country_id, row.region.strip()) not in regions.keys():
-            regions[(country_id, row.region.strip())] = Region(
-                len(regions) + 1, country_id, row.region.strip()
-            )
-        region_id = regions[(country_id, row.region.strip())].id
+            region_id = regions[(country_id, data.region)].id
 
-        # получение субрегиона
-        if (region_id, row.subregion.strip()) not in subregions.keys():
-            subregions[(region_id, row.subregion.strip())] = SubRegion(
-                len(subregions) + 1, region_id, row.subregion.strip()
-            )
-        subregion_id = subregions[(region_id, row.subregion.strip())].id
-        
-        
         # обработка даты
         if row.date_of_collect != "":
             datesStr = re.findall(
@@ -294,8 +282,6 @@ if __name__ == "__main__":
                 else:
                     pass  # debug
 
-        
-
         # получение пола
         sex = sexes[row.sex.lower().strip()]
         sex_id = sexes[row.sex.lower().strip()].id if (sex != None) else None
@@ -316,7 +302,8 @@ if __name__ == "__main__":
                 row.id_taxon,
                 row.collect_id,
                 kind_id,
-                subregion_id,
+                region_id,
+                #subregion_id,
                 row.gen_bank,
                 point,
                 vauch_inst_id,
@@ -328,7 +315,9 @@ if __name__ == "__main__":
                 sex_id,
                 age_id,
                 row.comments,
-                ", ".join([row.place_2, row.place_3]), # теперь сохраняем только последнии данные о позиции 
+                ", ".join(
+                    [row.place_2, row.place_3]
+                ),  # теперь сохраняем только последнии данные о позиции
             )
         )
 
