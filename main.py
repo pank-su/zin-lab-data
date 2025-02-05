@@ -7,6 +7,8 @@ from time import sleep
 
 from geopy.geocoders import Nominatim
 
+from pysondb import db
+
 from dataclass_csv import DataclassReader, DataclassWriter
 
 # import dataclasses
@@ -27,6 +29,8 @@ from dclasses.Tissue import Tissue
 from dclasses.VoucherInstitute import VoucherInstitute
 
 geolocator = Nominatim(user_agent="zin-data-lab")
+
+cacheDb = db.getDb("geocache.json")
 
 
 # вауч. институты
@@ -142,14 +146,53 @@ class GeoData:
     country: str
     region: str
 
+    def to_json(self):
+        return {"country": self.country, "region": self.region}
+
+
+def geo_data_from_json(obj) -> GeoData:
+    return GeoData(obj["country"], obj["region"])
+
 
 def get_geo_by_position(lat: float, lon: float) -> GeoData:
-    data = geolocator.reverse(f"{lat}, {lon}", language="ru")
-    return GeoData(data.raw["address"]["country"], data.raw["address"]["state"])
+    """Получение геоданных на основе координат с кеширование"""
+    obj = {"type": "position", "lat": lat, "lon": lon}
+    cached = cacheDb.getByQuery(obj)
+    if len(cached) != 0:
+        return geo_data_from_json(cached[0]["data"])
+    while True:
+        try:
+            data = geolocator.reverse(f"{lat}, {lon}", language="ru")
+            sleep(0.8)
+            break
+        except:
+            pass
+
+    # если нет опр. параметров то берём ниже
+    sub = (
+        data.raw["address"]["state"]
+        if "state" in data.raw["address"].keys()
+        else (
+            data.raw["address"]["county"]
+            if "county" in data.raw["address"].keys()
+            else (
+                data.raw["address"]["region"]
+                if "region" in data.raw["address"].keys()
+                else data.raw["address"]["city"]
+            )
+        )
+    )
+    geo_data = GeoData(data.raw["address"]["country"], sub)
+    obj["data"] = geo_data.to_json()
+    cacheDb.add(obj)
+    return geo_data
 
 
 def get_geo_by_geocode(geocode: str) -> GeoData:
+    """Получение геоданных на основе позиции с кешированием"""
+
     data = geolocator.geocode(geocode, addressdetails=True, language="ru")
+
     return GeoData(data.raw["address"]["country"], data.raw["address"]["state"])
 
 
@@ -228,10 +271,9 @@ if __name__ == "__main__":
 
         if row.latitude != 0 and row.longitude != 0:
             point = f"Point({row.longitude} {row.latitude})"
-            sleep(2)
             print(row.id_taxon)
             data = get_geo_by_position(row.latitude, row.longitude)
-            
+
             if data.country not in countries.keys():
                 countries[data.country] = Country(len(countries) + 1, data.country)
             country_id = countries[data.country].id
@@ -303,7 +345,7 @@ if __name__ == "__main__":
                 row.collect_id,
                 kind_id,
                 region_id,
-                #subregion_id,
+                # subregion_id,
                 row.gen_bank,
                 point,
                 vauch_inst_id,
