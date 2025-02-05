@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Gender:
+class Sex:
     id: int
     name: str
 

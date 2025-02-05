@@ -4,7 +4,6 @@ from dataclasses import dataclass
 @dataclass
 class Collection:
     id: int
-    CatalogueNumber: str
     collect_id: str
     kind_id: int
     subregion_id: int

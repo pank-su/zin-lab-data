@@ -1,0 +1,1 @@
+dataclass-csv==1.4.0

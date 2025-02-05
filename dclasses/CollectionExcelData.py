@@ -5,7 +5,7 @@ from dataclass_csv import accept_whitespaces
 
 @accept_whitespaces
 @dataclass
-class BadData:
+class CollectionExcelData:
     """Класс, который описывает данные из исходной таблицы"""
     id_taxon: int
     catalog_number: str = '' # для новых данных нужно значение по умолчанию
@@ -17,7 +17,7 @@ class BadData:
     collectors: str = ''
     rna: str = ''
     comments: str = ''
-    gender: str = '?'
+    sex: str = '?'
     age: str = ''
     tissue: str = ''  # Ткань
     collect_id: str = ''
