@@ -1,10 +1,14 @@
+from dataclasses import dataclass
 import re
 from datetime import date, datetime
 from os import chdir
 from typing import List, Dict, Tuple
 
+from geopy.geocoders import Nominatim
+
 from dataclass_csv import DataclassReader, DataclassWriter
 
+# import dataclasses
 from dclasses.Age import Age
 from dclasses.CollectionExcelData import CollectionExcelData
 from dclasses.Collection import Collection
@@ -20,6 +24,9 @@ from dclasses.Region import Region
 from dclasses.SubRegion import SubRegion
 from dclasses.Tissue import Tissue
 from dclasses.VoucherInstitute import VoucherInstitute
+
+geolocator = Nominatim(user_agent="zin-data-lab")
+
 
 # вауч. институты
 institutes: Dict[str, VoucherInstitute] = {}
@@ -129,6 +136,22 @@ def get_or_create(container: map, key, create_func):
     return container[key]
 
 
+@dataclass
+class GeoData:
+    country: str
+    state: str
+
+
+def get_geo_by_position(lat: float, lon: float) -> GeoData:
+    data = geolocator.reverse(f"${lat}, ${lon}", language="ru")
+    return GeoData(data.raw["address"]["country"], data.raw["address"]["state"])
+
+
+def get_geo_by_geocode(geocode: str) -> GeoData:
+    data = geolocator.geocode(geocode, addressdetails=True, language="ru")
+    return GeoData(data.raw["address"]["country"], data.raw["address"]["state"])
+
+
 if __name__ == "__main__":
     bad_data_collection = get_collection("input_data/collection.csv")
     for row in bad_data_collection:
@@ -167,7 +190,6 @@ if __name__ == "__main__":
             lambda: Kind(len(kinds) + 1, genus_id, kind),
         ).id
 
-    
         # получение института
         if row.vauch_inst != "":
             if row.vauch_inst not in institutes.keys():
@@ -205,7 +227,32 @@ if __name__ == "__main__":
 
         if row.latitude != 0 and row.longitude != 0:
             point = f"Point({row.longitude} {row.latitude})"
+        
+        
+        # Получение страны
+        if row.country == "":
+            country_id = countries["Россия"].id
+        else:
+            if row.country.strip() not in countries.keys():
+                countries[row.country.strip()] = Country(
+                    len(countries) + 1, row.country.strip()
+                )
+            country_id = countries[row.country.strip()].id
+        # получение региона
+        if (country_id, row.region.strip()) not in regions.keys():
+            regions[(country_id, row.region.strip())] = Region(
+                len(regions) + 1, country_id, row.region.strip()
+            )
+        region_id = regions[(country_id, row.region.strip())].id
 
+        # получение субрегиона
+        if (region_id, row.subregion.strip()) not in subregions.keys():
+            subregions[(region_id, row.subregion.strip())] = SubRegion(
+                len(subregions) + 1, region_id, row.subregion.strip()
+            )
+        subregion_id = subregions[(region_id, row.subregion.strip())].id
+        
+        
         # обработка даты
         if row.date_of_collect != "":
             datesStr = re.findall(
@@ -247,28 +294,7 @@ if __name__ == "__main__":
                 else:
                     pass  # debug
 
-        # Получение страны
-        if row.country == "":
-            country_id = countries["Россия"].id
-        else:
-            if row.country.strip() not in countries.keys():
-                countries[row.country.strip()] = Country(
-                    len(countries) + 1, row.country.strip()
-                )
-            country_id = countries[row.country.strip()].id
-        # получение региона
-        if (country_id, row.region.strip()) not in regions.keys():
-            regions[(country_id, row.region.strip())] = Region(
-                len(regions) + 1, country_id, row.region.strip()
-            )
-        region_id = regions[(country_id, row.region.strip())].id
-
-        # получение субрегиона
-        if (region_id, row.subregion.strip()) not in subregions.keys():
-            subregions[(region_id, row.subregion.strip())] = SubRegion(
-                len(subregions) + 1, region_id, row.subregion.strip()
-            )
-        subregion_id = subregions[(region_id, row.subregion.strip())].id
+        
 
         # получение пола
         sex = sexes[row.sex.lower().strip()]
@@ -302,7 +328,7 @@ if __name__ == "__main__":
                 sex_id,
                 age_id,
                 row.comments,
-                ", ".join([row.place_1, row.place_2, row.place_3]),
+                ", ".join([row.place_2, row.place_3]), # теперь сохраняем только последнии данные о позиции 
             )
         )
 
