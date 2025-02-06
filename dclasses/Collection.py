@@ -6,7 +6,7 @@ class Collection:
     id: int
     collect_id: str
     kind_id: int
-    subregion_id: int
+    region_id: int
     gen_bank_id: str
     point: str
     vouch_inst_id: int
