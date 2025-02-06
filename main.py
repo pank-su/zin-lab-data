@@ -30,8 +30,8 @@ from dclasses.VoucherInstitute import VoucherInstitute
 
 geolocator = Nominatim(user_agent="zin-data-lab")
 
-cacheDb = db.getDb("geocache.json")
-
+posDb = db.getDb("poscache.json")
+geocodeDb = db.getDb("geocodecache.json")
 
 # вауч. институты
 institutes: Dict[str, VoucherInstitute] = {}
@@ -154,46 +154,156 @@ def geo_data_from_json(obj) -> GeoData:
     return GeoData(obj["country"], obj["region"])
 
 
-def get_geo_by_position(lat: float, lon: float) -> GeoData:
-    """Получение геоданных на основе координат с кеширование"""
-    obj = {"type": "position", "lat": lat, "lon": lon}
-    cached = cacheDb.getByQuery(obj)
-    if len(cached) != 0:
-        return geo_data_from_json(cached[0]["data"])
+def retry(fun):
+    secs = 0.8
     while True:
         try:
-            data = geolocator.reverse(f"{lat}, {lon}", language="ru")
-            sleep(0.8)
-            break
-        except:
-            pass
+            sleep(secs)
+            data = fun()
+            return data
+        except Exception as e:
+            secs *= 2
+            print(e)
+            
 
+
+def get_geodata_by_raw(raw: dict):
     # если нет опр. параметров то берём ниже
+    address_keys = raw["address"].keys()
+
     sub = (
-        data.raw["address"]["state"]
-        if "state" in data.raw["address"].keys()
+        raw["address"]["state"]
+        if "state" in address_keys
         else (
-            data.raw["address"]["county"]
-            if "county" in data.raw["address"].keys()
+            raw["address"]["county"]
+            if "county" in address_keys
             else (
-                data.raw["address"]["region"]
-                if "region" in data.raw["address"].keys()
-                else data.raw["address"]["city"]
+                raw["address"]["province"]
+                if "province" in address_keys
+                else (
+                    raw["address"]["region"]
+                    if "region" in address_keys
+                    else (
+                        (raw["address"]["city"])
+                        if "city" in address_keys
+                        else (
+                            (raw["address"]["town"])
+                            if "town" in address_keys
+                            else (
+                                raw["address"]["village"]
+                                if "village" in address_keys
+                                else ""
+                            )
+                        )
+                    )
+                )
             )
         )
     )
-    geo_data = GeoData(data.raw["address"]["country"], sub)
-    obj["data"] = geo_data.to_json()
-    cacheDb.add(obj)
-    return geo_data
+    return GeoData(raw["address"]["country"], sub)
+
+
+def get_geo_by_position(lat: float, lon: float) -> GeoData:
+    """Получение геоданных на основе координат с кеширование"""
+    obj = {"type": "position", "lat": lat, "lon": lon}
+    cached = posDb.getByQuery(obj)
+    if len(cached) != 0:
+        return geo_data_from_json(cached[0]["data"])
+    data = retry(lambda: geolocator.reverse(f"{lat}, {lon}", language="ru"))
+    geodata = get_geodata_by_raw(data.raw)
+    obj["data"] = geodata.to_json()
+    posDb.add(obj)
+    return geodata
 
 
 def get_geo_by_geocode(geocode: str) -> GeoData:
-    """Получение геоданных на основе позиции с кешированием"""
+    """Получение геоданных на основе описания с кешированием"""
+    obj = {"type": "geocode", "geocode": geocode}
+    cached = geocodeDb.getByQuery(obj)
+    if len(cached) != 0:
+        return geo_data_from_json(cached[0]["data"])
+    data = retry(
+        lambda: geolocator.geocode(geocode, addressdetails=True, language="ru")
+    )
+    print(geocode)
+    print(data.raw)
+    geodata = get_geodata_by_raw(data.raw)
+    obj["data"] = geodata.to_json()
+    geocodeDb.add(obj)
+    return geodata
 
-    data = geolocator.geocode(geocode, addressdetails=True, language="ru")
 
-    return GeoData(data.raw["address"]["country"], data.raw["address"]["state"])
+def normalize_region(region: str):
+
+    if region.endswith(", Республика"):
+        return region[:-12]
+    if region.startswith("Респ."):
+        return region[5:]
+    if region == "Восточный Казахстан":
+        return "Восточно-Казахстанская область"
+    if region.endswith("р-н") or region.endswith("р-он"):
+        return region[:-4]
+    
+    region_mapping = {
+        "x": "",
+        "X": "",
+        "неизвестно": "",
+        "хр. Хан-Ху-Хэя": "", # хребет, не понятно где может быть
+        "Дэгэл-Гол": "", # не понятно где (очень старая запись)
+        "Западный Хэнтей": "Хэнтий",
+        "Гоби-Алтайский аймак": "Говь-Алтай",
+        "Булганский аймак": "Булган",
+        "Араратская долина": "Армавирская область",
+        "Зандижан": "Зенджан",
+        "Алма-Атинская обл.": "Алматинская область",
+        "Зандиван": "Зангилан",
+        "Баян-Хонгорский аймак": "Баянхонгор",
+        "окр.Улан-Батора": "Улан-Батор",
+        "окр. кишлака Зебон": "Зебон",
+        "Chamadan": "Хамадан",
+        "Саадат-Шах" : "Saadat Shahr",
+        "Havcheshme": "Hawizeh Marshes",
+        "Алайская долина": "Алайский район",
+        "окрестности Бишкека": "Бишкек",
+        "Халабский хребет": "Лорийская область",
+        "Памбакский хр.": "Котайкская область",
+        "вост. горы Агарац": "Ширакская область",
+        "Кобдосский аймак": "Ховд",
+        "Каракаралинский уезд": "Карагандинская область", # Российская империя
+        "Хэнтей": "Хэнтий",
+        "кишлак Ташахур": "Шахринавский район", # это что
+        "горный Бадахшан, Памир": "Горно-Бадахшанская автономная область",
+        "Убсунурский аймак":"Увс",
+        "Сухэ-Баторский аймак":"Сухэ-Батор",
+        "Хэнтэйский аймак": "Хэнтий",
+        "Зайсанская котловина": "Восточно-Казахстанская область",
+        "окр. кишлака Похтакор": "Пахтакор",
+        "окр. оз. Косогол": "Хубсугул"
+        
+    }
+    if region in region_mapping:
+        return region_mapping[region]
+    if "Пенджикент" in region or "Пенджакент" in region:
+        return "Пенджикент"
+    if "Худжанда" in region:
+        return "Худжанд"
+    return region
+
+
+def add_geodata(countries, regions, data: GeoData):
+    """
+    Добавляет географические данные в предоставленные словари стран и регионов.
+    """
+
+    if data.country not in countries.keys():
+        countries[data.country] = Country(len(countries) + 1, data.country)
+    country_id = countries[data.country].id
+    if (country_id, data.region) not in regions.keys():
+        regions[(country_id, data.region)] = Region(
+            len(regions) + 1, country_id, data.region
+        )
+    region_id = regions[(country_id, data.region)].id
+    return region_id
 
 
 if __name__ == "__main__":
@@ -274,14 +384,26 @@ if __name__ == "__main__":
             print(row.id_taxon)
             data = get_geo_by_position(row.latitude, row.longitude)
 
-            if data.country not in countries.keys():
-                countries[data.country] = Country(len(countries) + 1, data.country)
-            country_id = countries[data.country].id
-            if (country_id, data.region) not in regions.keys():
-                regions[(country_id, data.region)] = Region(
-                    len(regions) + 1, country_id, data.region
-                )
-            region_id = regions[(country_id, data.region)].id
+            region_id = add_geodata(countries, regions, data)
+        else:
+            print(row.id_taxon)
+
+            region = (
+                    row.region
+                    if row.region.strip() != ""
+                    else (
+                        row.place_2 
+                        if (row.place_1 == row.country)
+                        else row.place_1
+                    )
+                )         
+            query = f"{row.country} {normalize_region(region)}"
+            if query == "Грузия Лаго-Наки":
+                query = "Россия Лаго-Наки"
+            if query == "Россия Виварная": # 6069
+                query = "Россия"
+            data = get_geo_by_geocode(query)
+            region_id = add_geodata(countries, regions, data)
 
         # обработка даты
         if row.date_of_collect != "":
