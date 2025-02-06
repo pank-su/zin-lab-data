@@ -30,8 +30,8 @@ from dclasses.VoucherInstitute import VoucherInstitute
 
 geolocator = Nominatim(user_agent="zin-data-lab")
 
-posDb = db.getDb("poscache.json")
-geocodeDb = db.getDb("geocodecache.json")
+posDb = db.getDb("./cache/poscache.json")
+geocodeDb = db.getDb("./cache/geocodecache.json")
 
 # вауч. институты
 institutes: Dict[str, VoucherInstitute] = {}
