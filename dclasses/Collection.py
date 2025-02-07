@@ -15,6 +15,6 @@ class Collection:
     month: int
     year: int
     sex_id: int
-    age: int
+    age_id: int
     comment: str
     geo_comment: str

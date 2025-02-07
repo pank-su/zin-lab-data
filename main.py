@@ -171,40 +171,32 @@ def retry(fun):
             print(e)
 
 
-def get_geodata_by_raw(raw: dict):
-    # если нет опр. параметров то берём ниже
-    address_keys = raw["address"].keys()
+def get_geodata_by_raw(raw: dict) -> GeoData:
+    """
+    Extract location data from raw geocoding response.
+    Returns GeoData with country and region/state/province information.
+    """
+    # Define priority order for location fields
+    location_fields = [
+        "state",
+        "county",
+        "province",
+        "region",
+        "city",
+        "town",
+        "village",
+    ]
 
-    sub = (
-        raw["address"]["state"]
-        if "state" in address_keys
-        else (
-            raw["address"]["county"]
-            if "county" in address_keys
-            else (
-                raw["address"]["province"]
-                if "province" in address_keys
-                else (
-                    raw["address"]["region"]
-                    if "region" in address_keys
-                    else (
-                        (raw["address"]["city"])
-                        if "city" in address_keys
-                        else (
-                            (raw["address"]["town"])
-                            if "town" in address_keys
-                            else (
-                                raw["address"]["village"]
-                                if "village" in address_keys
-                                else ""
-                            )
-                        )
-                    )
-                )
-            )
-        )
-    )
-    return GeoData(raw["address"]["country"], sub)
+    address = raw["address"]
+
+    # Find first available location field
+    sub = ""
+    for field in location_fields:
+        if field in address:
+            sub = address[field]
+            break
+
+    return GeoData(address["country"], sub)
 
 
 def get_geo_by_position(lat: float, lon: float) -> GeoData:
@@ -312,11 +304,11 @@ def add_geodata(countries, regions, data: GeoData):
 if __name__ == "__main__":
     bad_data_collection = get_collection("input_data/collection.csv")
     for row in bad_data_collection:
-        year: int = 0
-        month: int = 0
-        day: int = 0
+        year: int = None
+        month: int = None
+        day: int = None
         country_id = 0
-        vauch_inst_id: int = 0
+        vauch_inst_id: int = None
 
         # получение отряда
         order = process_value(row.order)
@@ -340,7 +332,7 @@ if __name__ == "__main__":
             lambda: Genus(len(genuses) + 1, family_id, genus),
         ).id
 
-        kind = process_value(row.genus)
+        kind = process_value(row.kind)
         kind_id = get_or_create(
             kinds,
             (genus_id, kind),
@@ -533,9 +525,9 @@ if __name__ == "__main__":
         DataclassWriter(
             f, list(filter(lambda sex: sex != None, set(sexes.values()))), Sex
         ).write()
-    
+
     with open("tags.csv", "w", encoding="utf-8", newline="") as f:
         DataclassWriter(f, list(tags.values()), Tag).write()
-    
+
     with open("tags_to_collection.csv", "w", encoding="utf-8", newline="") as f:
         DataclassWriter(f, tags_to_collection, TagToCollection).write()
