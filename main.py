@@ -12,6 +12,7 @@ from pysondb import db
 from dataclass_csv import DataclassReader, DataclassWriter
 
 # import dataclasses
+from dclasses.Tag import Tag, TagToCollection
 from dclasses.Age import Age
 from dclasses.CollectionExcelData import CollectionExcelData
 from dclasses.Collection import Collection
@@ -91,6 +92,10 @@ ages = {
     "_": None,
 }
 
+tags = {"rna": Tag(1, "rna")}
+
+tags_to_collection: List[TagToCollection] = []
+
 # плохие значения
 invalid_values: List[str] = ["неизвестен", "?", ""]
 
@@ -164,7 +169,6 @@ def retry(fun):
         except Exception as e:
             secs *= 2
             print(e)
-            
 
 
 def get_geodata_by_raw(raw: dict):
@@ -243,13 +247,13 @@ def normalize_region(region: str):
         return "Восточно-Казахстанская область"
     if region.endswith("р-н") or region.endswith("р-он"):
         return region[:-4]
-    
+
     region_mapping = {
         "x": "",
         "X": "",
         "неизвестно": "",
-        "хр. Хан-Ху-Хэя": "", # хребет, не понятно где может быть
-        "Дэгэл-Гол": "", # не понятно где (очень старая запись)
+        "хр. Хан-Ху-Хэя": "",  # хребет, не понятно где может быть
+        "Дэгэл-Гол": "",  # не понятно где (очень старая запись)
         "Западный Хэнтей": "Хэнтий",
         "Гоби-Алтайский аймак": "Говь-Алтай",
         "Булганский аймак": "Булган",
@@ -261,7 +265,7 @@ def normalize_region(region: str):
         "окр.Улан-Батора": "Улан-Батор",
         "окр. кишлака Зебон": "Зебон",
         "Chamadan": "Хамадан",
-        "Саадат-Шах" : "Saadat Shahr",
+        "Саадат-Шах": "Saadat Shahr",
         "Havcheshme": "Hawizeh Marshes",
         "Алайская долина": "Алайский район",
         "окрестности Бишкека": "Бишкек",
@@ -269,17 +273,16 @@ def normalize_region(region: str):
         "Памбакский хр.": "Котайкская область",
         "вост. горы Агарац": "Ширакская область",
         "Кобдосский аймак": "Ховд",
-        "Каракаралинский уезд": "Карагандинская область", # Российская империя
+        "Каракаралинский уезд": "Карагандинская область",  # Российская империя
         "Хэнтей": "Хэнтий",
-        "кишлак Ташахур": "Шахринавский район", # это что
+        "кишлак Ташахур": "Шахринавский район",  # это что
         "горный Бадахшан, Памир": "Горно-Бадахшанская автономная область",
-        "Убсунурский аймак":"Увс",
-        "Сухэ-Баторский аймак":"Сухэ-Батор",
+        "Убсунурский аймак": "Увс",
+        "Сухэ-Баторский аймак": "Сухэ-Батор",
         "Хэнтэйский аймак": "Хэнтий",
         "Зайсанская котловина": "Восточно-Казахстанская область",
         "окр. кишлака Похтакор": "Пахтакор",
-        "окр. оз. Косогол": "Хубсугул"
-        
+        "окр. оз. Косогол": "Хубсугул",
     }
     if region in region_mapping:
         return region_mapping[region]
@@ -389,18 +392,14 @@ if __name__ == "__main__":
             print(row.id_taxon)
 
             region = (
-                    row.region
-                    if row.region.strip() != ""
-                    else (
-                        row.place_2 
-                        if (row.place_1 == row.country)
-                        else row.place_1
-                    )
-                )         
+                row.region
+                if row.region.strip() != ""
+                else (row.place_2 if (row.place_1 == row.country) else row.place_1)
+            )
             query = f"{row.country} {normalize_region(region)}"
             if query == "Грузия Лаго-Наки":
                 query = "Россия Лаго-Наки"
-            if query == "Россия Виварная": # 6069
+            if query == "Россия Виварная":  # 6069
                 query = "Россия"
             data = get_geo_by_geocode(query)
             region_id = add_geodata(countries, regions, data)
@@ -461,6 +460,9 @@ if __name__ == "__main__":
         if row.tissue.strip() not in tissues.keys():
             tissues[row.tissue.strip()] = Tissue(len(tissues), row.tissue.strip())
 
+        if row.rna != "":
+            tags_to_collection.append(TagToCollection(row.id_taxon, tags["rna"].id))
+
         collection.append(
             Collection(
                 row.id_taxon,
@@ -475,7 +477,6 @@ if __name__ == "__main__":
                 day,
                 month,
                 year,
-                row.rna != "",
                 sex_id,
                 age_id,
                 row.comments,
@@ -514,7 +515,7 @@ if __name__ == "__main__":
     with open("collection.csv", "w", encoding="utf-8", newline="") as f:
         DataclassWriter(f, collection, Collection).write()
 
-    with open("CollectorToCollection.csv", "w", encoding="utf-8", newline="") as f:
+    with open("collectors_to_collection.csv", "w", encoding="utf-8", newline="") as f:
         DataclassWriter(f, collectors_to_collection, CollectorToCollection).write()
 
     with open("institutes.csv", "w", encoding="utf-8", newline="") as f:
@@ -532,3 +533,9 @@ if __name__ == "__main__":
         DataclassWriter(
             f, list(filter(lambda sex: sex != None, set(sexes.values()))), Sex
         ).write()
+    
+    with open("tags.csv", "w", encoding="utf-8", newline="") as f:
+        DataclassWriter(f, list(tags.values()), Tag).write()
+    
+    with open("tags_to_collection.csv", "w", encoding="utf-8", newline="") as f:
+        DataclassWriter(f, tags_to_collection, TagToCollection).write()

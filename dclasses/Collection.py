@@ -14,7 +14,6 @@ class Collection:
     day: int
     month: int
     year: int
-    rna: bool
     sex_id: int
     age: int
     comment: str
