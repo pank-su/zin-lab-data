@@ -160,6 +160,9 @@ def geo_data_from_json(obj) -> GeoData:
 
 
 def retry(fun):
+    """
+    Бесконечный повтор при ошибке с экспоненциальным таймаутом
+    """
     secs = 0.8
     while True:
         try:
@@ -173,10 +176,9 @@ def retry(fun):
 
 def get_geodata_by_raw(raw: dict) -> GeoData:
     """
-    Extract location data from raw geocoding response.
-    Returns GeoData with country and region/state/province information.
+    Получение GeoData на основе данных из OSM
     """
-    # Define priority order for location fields
+    # Определяем порядок получения полей для получения "региона"
     location_fields = [
         "state",
         "county",
@@ -189,7 +191,7 @@ def get_geodata_by_raw(raw: dict) -> GeoData:
 
     address = raw["address"]
 
-    # Find first available location field
+    # Получаем первую попавшуюся часть иначе пустоту
     sub = ""
     for field in location_fields:
         if field in address:
@@ -230,6 +232,9 @@ def get_geo_by_geocode(geocode: str) -> GeoData:
 
 
 def normalize_region(region: str):
+    """
+    Нормализуем данные региона
+    """
 
     if region.endswith(", Республика"):
         return region[:-12]
@@ -240,6 +245,7 @@ def normalize_region(region: str):
     if region.endswith("р-н") or region.endswith("р-он"):
         return region[:-4]
 
+    # синонимы названий
     region_mapping = {
         "x": "",
         "X": "",
@@ -478,56 +484,30 @@ if __name__ == "__main__":
             )
         )
 
+    # запись всех данных
+
     chdir("./output")
 
-    with open("collectors.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, list(collectors.values()), Collector).write()
-
-    with open("countries.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, list(countries.values()), Country).write()
-
-    with open("regions.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, list(regions.values()), Region).write()
-
-    with open("subregions.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, list(subregions.values()), SubRegion).write()
-
-    with open("orders.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, list(orders.values()), Order).write()
-
-    with open("families.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, list(families.values()), Family).write()
-
-    with open("genuses.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, list(genuses.values()), Genus).write()
-
-    with open("kinds.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, list(kinds.values()), Kind).write()
-
-    with open("collection.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, collection, Collection).write()
-
-    with open("collectors_to_collection.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, collectors_to_collection, CollectorToCollection).write()
-
-    with open("institutes.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, list(institutes.values()), VoucherInstitute).write()
-
-    with open("tissues.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, list(tissues.values()), Tissue).write()
-
-    with open("ages.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(
-            f, list(filter(lambda age: age != None, set(ages.values()))), Age
-        ).write()
-
-    with open("sex.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(
-            f, list(filter(lambda sex: sex != None, set(sexes.values()))), Sex
-        ).write()
-
-    with open("tags.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, list(tags.values()), Tag).write()
-
-    with open("tags_to_collection.csv", "w", encoding="utf-8", newline="") as f:
-        DataclassWriter(f, tags_to_collection, TagToCollection).write()
+    def write_to_csv(filename: str, data, data_class):
+        """
+        Запись CSV в файл
+        """
+        with open(filename, "w", encoding="utf-8", newline="") as f:
+            DataclassWriter(f, data, data_class).write()
+    
+    write_to_csv("collectors.csv", list(collectors.values()), Collector)
+    write_to_csv("countries.csv", list(countries.values()), Country)
+    write_to_csv("regions.csv", list(regions.values()), Region)
+    write_to_csv("subregions.csv", list(subregions.values()), SubRegion)
+    write_to_csv("orders.csv", list(orders.values()), Order)
+    write_to_csv("families.csv", list(families.values()), Family)
+    write_to_csv("genuses.csv", list(genuses.values()), Genus)
+    write_to_csv("kinds.csv", list(kinds.values()), Kind)
+    write_to_csv("collection.csv", collection, Collection)
+    write_to_csv("collectors_to_collection.csv", collectors_to_collection, CollectorToCollection)
+    write_to_csv("institutes.csv", list(institutes.values()), VoucherInstitute)
+    write_to_csv("tissues.csv", list(tissues.values()), Tissue)
+    write_to_csv("ages.csv", list(filter(lambda age: age != None, set(ages.values()))), Age)
+    write_to_csv("sex.csv", list(filter(lambda sex: sex != None, set(sexes.values()))), Sex)
+    write_to_csv("tags.csv", list(tags.values()), Tag)
+    write_to_csv("tags_to_collection.csv", tags_to_collection, TagToCollection)
